@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>2D Game CA1</title>
+
+        <link rel='shortcut icon' type='image/x-icon' href='images/favicon.ico' />
+        <link href = "css/zombieGame.css" rel = "stylesheet" type = "text/css">
+
+        <style>
+
+        </style>
+
+    <p>  </p>
+    
+    <script>
+        //Canvas//
+
+        var characterPath = "images/Sprites/zSprite.png";
+
+        var characterWidth = 72,
+            characterHeight = 96,
+            characterStartX = 200,
+            characterStartY = 200,
+            characterSpeed = 5,
+            imageStartX = 0,
+            imageStartNorthY = 0,
+            imageStartEastY = 96,
+            imageStartSouthY = 192,
+            imageStartWestY = 288,
+            spriteWidth = 216;
+
+        var gameloop, facing, currentX, currentY, characterX, characterY, isMoving;
+
+
+
+        var canvas = document.createElement("canvas");
+        var g = canvas.getContext("2d");
+        //var g2 = canvas.getContext("2d");
+        canvas.width = 500;
+        canvas.height = 500;
+        document.body.appendChild(canvas);
+        var dir = 1;
+        var first = true;
+        var shoot_update = false;
+        var timing = new Date().getTime();
+        var time = Math.round((end - timing) / 1000);
+        var end = new Date().getTime();
+        var distance = 0;
+
+        //background//
+        var bgReady = false;
+        var bgImage = new Image();
+        bgImage.onload = function () {
+            bgReady = true;
+        };
+        bgImage.src = "images/Background/background.jpg";
+
+        // Zombie image//
+        var zombieReady = false;
+        var zombieImage = new Image();
+        zombieImage.onload = function () {
+            zombieReady = true;
+        };
+        zombieImage.src = characterPath;
+
+        //human//
+        var humanReady = false;
+        var humanImage = new Image();
+        humanImage.onload = function () {
+            humanReady = true;
+        };
+        humanImage.src = "images/Enemys/human.png";
+
+        //machete//
+        var macheteReady = false;
+        var macheteImage = new Image();
+        macheteImage.onload = function ()
+        {
+            macheteReady = true;
+        };
+        macheteImage.src = "images/Enemys/machete.png";
+
+        var brainReady = false;
+        var brainImage = new Image();
+        brainImage.onload = function () {
+            //brainReady = true;
+        };
+        brainImage.src = "images/Projectiles/brainz.png";
+        
+        var winner = new Image();
+        winner.src = "images/Background/winner.jpg";
+         var loser = new Image();
+        loser.src = "images/Background/loser.jpg";
+        //Game objects//
+        var x = Math.floor((Math.random() * 500) + 100);
+        var score = 0;
+        var zombie = {speed: 150};
+        var human = {speed: x};
+        var human2 = {speed: x};
+        var human3 = {speed: x};
+        var machete = {speed: 256};
+        var brain = {speed: 256};
+        var humansEaten = 0;
+        var lifes = 3;
+        var humansShot = 0;
+        characterX = characterStartX;
+        characterY = characterStartY;
+        currentX = imageStartX;
+        currentY = imageStartEastY;
+        var origin = {};
+        //Handle keyboard controls//
+        var keysDown = {};
+        addEventListener("keydown", function (e) {
+            keysDown[e.keyCode] = true;
+        }, false);
+
+        addEventListener("keyup", function (e) {
+            delete keysDown[e.keyCode];
+        }, false);
+
+        //Reset the game when the player catches a human//
+        function spawnhuman1() {
+            zombie.x = canvas.width / 2;
+            zombie.y = canvas.height / 2;
+            //Puts the human somewhere on the screen randomly//
+            human.x = 32 + (Math.random() * (canvas.width - 64));
+            human.y = 32 + (Math.random() * (canvas.height - 64));
+            //Puts the machete somewhere on the screen randomly//
+            machete.x = 32 + (Math.random() * (canvas.width - 64));
+            machete.y = 32 + (Math.random() * (canvas.height - 64));
+        }
+
+        function spawnhuman2() {
+            human2.x = 32 + (Math.random() * (canvas.width - 64));
+            human2.y = 32 + (Math.random() * (canvas.height - 64));
+        }
+        function spawnhuman3() {
+            human3.x = 32 + (Math.random() * (canvas.width - 64));
+            human3.y = 32 + (Math.random() * (canvas.height - 64));
+        }
+
+        function start() {//reset
+            zombie.x = canvas.width / 2;
+            zombie.y = canvas.height / 2;
+            facing = "E";
+            machete.x = 32 + (Math.random() * (canvas.width - 64));
+            machete.y = 32 + (Math.random() * (canvas.height - 64));
+            human.x = 32 + (Math.random() * (canvas.width - 64));
+            human.y = 32 + (Math.random() * (canvas.height - 64));
+        }
+
+
+        //Update game objects//
+        function keydownHandler(e) {
+
+            if (38 in keysDown || 87 in keysDown) { // Player holding up
+                zombie.y -= zombie.speed * e;
+                machete.y += machete.speed * e;//machete is opposite of zombie
+                currentY = imageStartNorthY;
+                if (zombie.y <= 0) {
+                    zombie.y = 540;
+                }
+                if (machete.y >= 540) {
+                    machete.y = 0;
+                }
+                dir = 1;
+                currentX += characterWidth;
+
+                if (currentX >= spriteWidth)
+                    currentX = 0;
+            }
+            if (40 in keysDown || 83 in keysDown) { // Player holding down
+                zombie.y += zombie.speed * e;
+                machete.y -= machete.speed * e;
+                currentY = imageStartSouthY;
+                if (zombie.y >= 540) {
+                    zombie.y = 0;
+                }
+                if (machete.y <= 0) {
+                    machete.y = 540;
+                }
+                dir = 2;
+                currentX += characterWidth;
+
+                if (currentX >= spriteWidth)
+                    currentX = 0;
+            }
+            if (37 in keysDown || 65 in keysDown) { // Player holding left
+                zombie.x -= zombie.speed * e;
+                machete.x += machete.speed * e;
+                currentY = imageStartWestY;
+                if (zombie.x <= 0) {
+                    zombie.x = 540;
+                }
+                if (machete.x >= 540) {
+                    machete.x = 0;
+                }
+                dir = 3;
+                currentX += characterWidth;
+
+                if (currentX >= spriteWidth)
+                    currentX = 0;
+
+            }
+            if (39 in keysDown || 68 in keysDown) { // Player holding right
+                zombie.x += zombie.speed * e;
+                machete.x -= machete.speed * e;
+                currentY = imageStartEastY;
+                if (zombie.x >= 540) {
+                    zombie.x = 0;
+                }
+                if (machete.x <= 0) {
+                    machete.x = 540;
+                }
+                dir = 4;
+                currentX += characterWidth;
+
+                if (currentX >= spriteWidth)
+                    currentX = 0;
+            }
+
+            //if touching//Hitbox
+            if (zombie.x <= (human.x + 40) && human.x <= (zombie.x + 40) && zombie.y <= (human.y + 40)
+                    && human.y <= (zombie.y + 40)) 
+            {
+                ++humansEaten;
+                spawnhuman1();
+            }
+
+            if (
+                    zombie.x <= (human2.x + 40)
+                    && human2.x <= (zombie.x + 40)
+                    && zombie.y <= (human2.y + 40)
+                    && human2.y <= (zombie.y + 40)
+                    ) {
+                ++humansEaten;
+                spawnhuman2();
+            }
+            if (
+                    zombie.x <= (human3.x + 40)
+                    && human3.x <= (zombie.x + 40)
+                    && zombie.y <= (human3.y + 40)
+                    && human3.y <= (zombie.y + 40)
+                    ) {
+                ++humansEaten;
+                spawnhuman3();
+            }
+            if (
+                    zombie.x <= (machete.x + 40)
+                    && machete.x <= (zombie.x + 40)
+                    && zombie.y <= (machete.y + 40)
+                    && machete.y <= (zombie.y + 40)
+                    ) {
+                --lifes;
+                spawnhuman1();
+                spawnhuman2();
+                spawnhuman3();
+                start();
+            }
+
+            if (lifes < 0) {
+                lifes = 3;
+                humansEaten = 0;
+                start();
+            }
+
+            if (82 in keysDown)//reset key
+            {
+                humansEaten = 0;
+                timing = new Date().getTime();
+                start();
+            }
+
+
+            if (80 in keysDown)//pause key
+            {
+                pauseGame();
+            }
+
+            if (32 in keysDown) { // Player holding space
+                brainReady = true;
+                brain.x = zombie.x + 50;
+                brain.y = zombie.y + 50;
+
+
+                if (first === true)
+                {
+                    origin.x = zombie.x;
+                    origin.y = zombie.y;
+                    first = false;
+                }
+            }
+        };
+
+        var fps = {
+            current: 0,
+            last: 0,
+            lastUpdated: Date.now(), //	Returns the number of milliseconds since midnight Jan 1, 1970
+            update: function () {
+                fps.current++;
+                if (Date.now() - fps.lastUpdated >= 1000) {
+                    fps.last = fps.current;
+                    fps.current = 0;
+                    fps.lastUpdated = Date.now();
+                }
+                ;
+            }
+        };
+
+        function shoot(e) {
+
+            if (dir === 1) {
+
+                brain.y -= brain.speed * e * 4;
+            }
+
+            if (dir === 2) {
+
+                brain.y += brain.speed * e * 4;
+            }
+
+            if (dir === 3) {
+
+                brain.x -= brain.speed * e * 4;
+            }
+
+            if (dir === 4) {
+
+                brain.x += brain.speed * e * 4;
+
+            }
+
+            //if they are touching
+            if (
+                    brain.x <= (human.x + 40)
+                    && human.x <= (brain.x + 40)
+                    && zombie.y <= (brain.y + 40)
+                    && human.y <= (brain.y + 40)
+                    ) {
+                ++humansShot;
+                start();
+            }
+         
+    
+            //distance = square root sqrt  of ( (x2-x1)^2 + (y2-y1)^2)
+
+            var distance = Math.sqrt(Math.pow(brain.x - origin.x, 2) + Math.pow(brain.y - origin.y, 2));
+
+            if (distance > 500)//travel distance of brain
+            {
+                brainReady = false;
+                first = true;
+            }
+        }
+
+
+
+        // Draw everything
+        function renderCanvas() {
+            if (bgReady) {
+                g.drawImage(bgImage, 0, 0);
+            }
+
+            if (zombieReady) {
+                g.drawImage(zombieImage, currentX, currentY, characterWidth, characterHeight,
+                        zombie.x, zombie.y, characterWidth, characterHeight);
+            }
+            if (humanReady) {
+                g.drawImage(humanImage, human.x, human.y);
+            }
+     
+            if (macheteReady) {
+                g.drawImage(macheteImage, machete.x, machete.y);
+            }
+            if (brainReady) {
+                g.drawImage(brainImage, brain.x, brain.y);
+            }
+
+
+            // Score
+            g.fillStyle = "rgb(0, 250, 250)";
+            g.font = "20px Helvetica";
+            g.textAlign = "left";
+            g.textBaseline = "top";
+            g.fillText("Humans eaten: " + humansEaten, 10, 80);
+
+
+            g.fillStyle = "rgb(0, 250, 250)";
+            g.font = "20px Helvetica";
+            g.textAlign = "left";
+            g.textBaseline = "top";
+            g.fillText("Humans Shot: " + humansShot, 10, 100);
+
+            // co-ordinates
+            g.fillStyle = "rgb(0, 250, 250)";
+            g.font = "20px Helvetica";
+            g.textAlign = "left";
+            g.textBaseline = "top";
+            g.fillText("x:" + parseInt(zombie.x), 182, 470);
+            g.fillText("y:" + parseInt(zombie.y), 282, 470);
+
+
+            g.fillStyle = "rgb(0, 250, 250)";
+            g.font = "24px Helvetica";
+            g.textAlign = "left";
+            g.textBaseline = "top";
+            g.fillText("Lifes: " + lifes, 390, 10);
+            if (lifes<1)
+            {
+                 g.drawImage(loser,0,0);
+            }
+
+            fps.update();
+            g.fillText("FPS: " + fps.last, 10, 10);
+            if (fps.lastUpdated < 30)
+            {
+                alert("FPS IS TOO LOW");
+            }
+
+            end = new Date().getTime();
+            time = Math.round((end - timing) / 1000);
+            g.fillText("Time: " + time, 390, 42);
+
+            score = humansEaten + humansShot;
+            g.fillText("Score: " + score, 390, 70);
+            if (score <= 7)
+            {
+                g.fillText("Level: 1", 10, 35);
+
+            }
+            else if (score > 7 && score < 15)
+            {
+                g.fillText("Level: 2", 10, 35);
+                if (humanReady) {
+                g.drawImage(humanImage, human2.x, human2.y);
+            }
+
+            }
+            else if (score >= 15 && score < 25)
+            {
+                g.fillText("Level: 3", 10, 35);
+                 if (humanReady) {
+                g.drawImage(humanImage, human2.x, human2.y);
+            }
+            if (humanReady) {
+                g.drawImage(humanImage, human3.x, human3.y);
+            }
+            }
+            else if (score => 25)
+            {
+                g.drawImage(winner,0,0);
+                //g.fillStyle = "red";
+                //g.font = "100px Times Roman";
+                //g.fillText("You Win!", 40, 150);
+            }
+        }
+        
+
+        function save()//saves score+time to local storage
+        {
+            localStorage.time = time;
+            localStorage.score = score;
+        }
+
+        function loadSave()//not working
+        {
+            time = Number(localStorage.time);
+            score = Number(localStorage.score);
+        }
+        
+        function leavePause()
+        {
+            gamePaused=true;
+        }
+        game = setTimeout(main, 1000 / 30);
+
+        function pauseGame() {
+          game = clearTimeout(game);
+        }
+
+        function pauseGame() {
+          if (!gamePaused) {
+            game = clearTimeout(game);
+            gamePaused = true;
+          } else if (gamePaused) {
+            game = setTimeout(main, 1000 / 30);
+            gamePaused = false;
+          }
+        }
+
+        //The main game loop//
+        function main() {
+            var now = Date.now();
+            var delta = now - then;
+            shoot(delta / 1000);
+            keydownHandler(delta / 1000);
+            console.log(dir);
+            renderCanvas();
+            then = now;
+            // Request to do this again ASAP
+            //requestAnimationFrame(main);
+        }
+
+        // Cross-browser support for requestAnimationFrame
+       // var w = window;
+     //requestAnimationFrame = w.requestAnimationFrame || w.webkitRequestAnimationFrame || w.msRequestAnimationFrame || w.mozRequestAnimationFrame;
+
+        //plays game//
+        var then = Date.now();
+        spawnhuman1();
+        spawnhuman2();
+        spawnhuman3();
+        start();
+        main();      
+       setInterval(main, 1);//works like requestAnimationFrame
+    </script>
+
+    <p> WASD & ARROWS: Move player<br>
+        SPACE: Shoot<br>
+        CTRL+Shift+j: view score in local storage<br>
+        R : Restart<br>
+        P: Pause<br>
+    </p>  
+                            <!--Sources-->
+    <!--  
+          http://www.gaminglogy.com/tutorial/controls-keyboard/demo/index.html  
+          http://www.cambiaresearch.com/articles/15/javascript-key-codes
+          http://charas-project.net/charas2/index.php
+          http://jsfiddle.net/ejTCy/7/
+          http://derek.dkit.ie/
+          http://resizeimage.net/
+          http://www.w3schools.com/tags/ref_eventattributes.asp
+          http://www.w3schools.com/html/html5_webstorage.asp
+    -->
+    
+    
+    <button onclick="save()">Save </button>
+    <button onclick="loadSave()">Load Save</button>
+
+</body>
+</html>
